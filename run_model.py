@@ -99,7 +99,6 @@ def run_model(opt):
 
     for indx, (norm_data, data) in enumerate(seq_loader):
 
-        # model_inps = Variable(norm_data.cuda())
         model_inps = Variable(norm_data.to(device))
         model_outs, model_scale = pretrained_model(model_inps)
 

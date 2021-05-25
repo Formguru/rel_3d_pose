@@ -22,14 +22,13 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
     losses_cam = utils.AverageMeter()
     losses_tot = utils.AverageMeter()
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if standardize_output_data:
         # NOTE: in the case of the 3d supervised model the only the output is
         # un-standardized using the values from the data on which the model was
         # pre-trained.
-#         outputs_mean = Variable(torch.from_numpy(stat_3d['mean'][np.newaxis, ...]).cuda(),requires_grad=False)
-        outputs_mean = Variable(torch.from_numpy(stat_3d['mean'][np.newaxis, ...]),requires_grad=False)
-#         outputs_std  = Variable(torch.from_numpy(stat_3d['std'][np.newaxis, ...]).cuda(),requires_grad=False)
-        outputs_std  = Variable(torch.from_numpy(stat_3d['std'][np.newaxis, ...]),requires_grad=False)
+        outputs_mean = Variable(torch.from_numpy(stat_3d['mean'][np.newaxis, ...]).to(device),requires_grad=False)
+        outputs_std  = Variable(torch.from_numpy(stat_3d['std'][np.newaxis, ...]).to(device),requires_grad=False)
 
     if use_loaded_stats:
         # input mean and standard deviation loaded from the checkpoint file
@@ -40,13 +39,11 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         # load this from the misc
         # NOTE: values of -1 in the misc or joint in the misc.SKELETON MASK will be ignored
         limb_lens_3d = Variable(torch.from_numpy(np.array(misc.SKELETON_3D_LENS_AVG_PERSON).astype(
-#                     stat_2d['lsp_mean'].dtype)).unsqueeze(0).cuda(),requires_grad=False)
-                    stat_2d['lsp_mean'].dtype)).unsqueeze(0),requires_grad=False)
+                    stat_2d['lsp_mean'].dtype)).unsqueeze(0).to(device),requires_grad=False)
 
     elif limb_type == 'avg_human36':
         limb_lens_3d = Variable(torch.from_numpy(stat_3d['avg_limb_lens'].astype(
-#                                 stat_2d['lsp_mean'].dtype)).cuda(),requires_grad=False)
-                                stat_2d['lsp_mean'].dtype)),requires_grad=False)
+                                stat_2d['lsp_mean'].dtype)).to(device),requires_grad=False)
 
     else:
         assert False, "Unkown value [%s] for parameter [limb_type]"%limb_type
@@ -71,28 +68,23 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         num_keypoints = int(inps.shape[1] / 2) # inps are the 2d coordinates
         batch_size    = inps.shape[0]
 
-#         inputs   = Variable(inps.cuda())
-        inputs   = Variable(inps)
-#         rel_inds = Variable(rel_inds.cuda())
-        rel_inds = Variable(rel_inds)
-#         rel_gt   = Variable(rel_gt.cuda())
-        rel_gt   = Variable(rel_gt)
+        inputs   = Variable(inps.to(device))
+        rel_inds = Variable(rel_inds.to(device))
+        rel_gt   = Variable(rel_gt.to(device))
 
         ########################################################################
         # normalize if specified by the flags
         if standardize_input_data:
             if not use_loaded_stats:
                 # use the data that is already normalized
-#                 model_inputs  = Variable(norm_inps.cuda())
-                model_inputs  = Variable(norm_inps)
+                model_inputs  = Variable(norm_inps.to(device))
 
             else:
                 # normalize the data according to the stat_2d loaded from ckpt
                 norm_data = (inps - loaded_inputs_mean) / loaded_inputs_std
                 norm_data[np.isnan(norm_data)] = 0
 
-#                 model_inputs  = Variable(norm_data.cuda())
-                model_inputs  = Variable(norm_data)
+                model_inputs  = Variable(norm_data.to(device))
 
         else:
             model_inputs  = inputs

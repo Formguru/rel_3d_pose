@@ -15,8 +15,8 @@ def relative_loss(pos_3d, rel_inds, rel_gt, distance_multiplier):
 
     # cr = torch.log(1.0+torch.exp(-gt*dis))
     # NOTE: cap the maximum value to 85 so that the exp doesn't overflow
-#     capped_dist = torch.min(85*Variable(torch.ones(dis.shape).cuda()),
-    capped_dist = torch.min(85*Variable(torch.ones(dis.shape)),
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    capped_dist = torch.min(85*Variable(torch.ones(dis.shape).to(device)),
                             -gt*dis*distance_multiplier)
     # capped_dist = -gt*dis*distance_multiplier
     cr = torch.log1p(torch.exp(capped_dist))

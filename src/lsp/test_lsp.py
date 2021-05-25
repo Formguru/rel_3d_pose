@@ -22,14 +22,13 @@ def test_lsp(test_loader, misc, stat_2d, stat_3d,
     # dictionary for storing a few images for visualization purposes
     output_for_viz = {'pts_2d':[], 'pred_3d':[]}
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     if standardize_output_data:
         # NOTE: in the case of the 3d supervised model the only the output is
         # un-standardized using the values from the data on which the model was
         # pre-trained.
-#         outputs_mean = Variable(torch.from_numpy(stat_3d['mean'][np.newaxis, ...]).cuda(),requires_grad=False)
-        outputs_mean = Variable(torch.from_numpy(stat_3d['mean'][np.newaxis, ...]),requires_grad=False)
-#         outputs_std  = Variable(torch.from_numpy(stat_3d['std'][np.newaxis, ...]).cuda(),requires_grad=False)
-        outputs_std  = Variable(torch.from_numpy(stat_3d['std'][np.newaxis, ...]),requires_grad=False)
+        outputs_mean = Variable(torch.from_numpy(stat_3d['mean'][np.newaxis, ...]).to(device) ,requires_grad=False)
+        outputs_std  = Variable(torch.from_numpy(stat_3d['std'][np.newaxis, ...]).to(device),requires_grad=False)
 
     if use_loaded_stats:
         # input mean and standard deviation loaded from the checkpoint file
@@ -47,8 +46,7 @@ def test_lsp(test_loader, misc, stat_2d, stat_3d,
         num_keypoints = int(inps.shape[1] / 2) # inps are the 2d coordinates
         batch_size    = inps.shape[0]
 
-#         inputs   = Variable(inps.cuda(), requires_grad=False)
-        inputs   = Variable(inps, requires_grad=False)
+        inputs   = Variable(inps.to(device), requires_grad=False)
         rel_inds = rel_inds.numpy()
         rel_gt   = rel_gt.view(-1).numpy()
 
@@ -57,16 +55,14 @@ def test_lsp(test_loader, misc, stat_2d, stat_3d,
         if standardize_input_data:
             if not use_loaded_stats:
                 # use the data that is already normalized
-#                 model_inputs  = Variable(norm_inps.cuda())
-                model_inputs  = Variable(norm_inps)
+                model_inputs  = Variable(norm_inps.to(device))
 
             else:
                 # normalize the data according to the stat_2d loaded from ckpt
                 norm_data = (inps - loaded_inputs_mean) / loaded_inputs_std
                 norm_data[np.isnan(norm_data)] = 0
 
-#                 model_inputs  = Variable(norm_data.cuda())
-                model_inputs  = Variable(norm_data)
+                model_inputs  = Variable(norm_data.to(device))
 
         else:
             model_inputs  = inputs
