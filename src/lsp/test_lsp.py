@@ -60,7 +60,7 @@ def test_lsp(test_loader, misc, stat_2d, stat_3d,
             else:
                 # normalize the data according to the stat_2d loaded from ckpt
                 norm_data = (inps - loaded_inputs_mean) / loaded_inputs_std
-                norm_data[np.isnan(norm_data)] = 0
+                norm_data[np.isnan(norm_data.cpu())] = 0
 
                 model_inputs  = Variable(norm_data.to(device))
 
@@ -70,7 +70,7 @@ def test_lsp(test_loader, misc, stat_2d, stat_3d,
         ########################################################################
         # pass through the network
         model_outputs, model_scale = model(model_inputs)
-        if np.isnan(model_outputs.mean().data):
+        if np.isnan(model_outputs.mean().data.cpu()):
             print('nans in prediction')
             import ipdb;ipdb.set_trace()
 
