@@ -15,7 +15,8 @@ from src.data_formats.misc import DatasetMisc
 from src.model import LinearModel, weight_init
 
 from src.utils.pose_plotter import PosePlotter
-from src.data_formats.human36_17k_config import pose_config
+# from src.data_formats.human36_17k_config import pose_config
+from src.data_formats.lsp_14k_config import pose_config
 
 
 def run_model(opt):
@@ -51,7 +52,8 @@ def run_model(opt):
                                    opt['unnorm_op'],
                                    opt['unnorm_init'])
 
-    pretrained_model = pretrained_model.cuda()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    pretrained_model = pretrained_model.to(device)
     pretrained_model.load_state_dict(ckpt['state_dict'])
     pretrained_model.eval()
 
@@ -61,7 +63,7 @@ def run_model(opt):
     print(" - Data path:  [{}]".format(opt['data_dir']))
     print(" - Data type:  [{}]".format(opt['dataset_type']))
 
-    with open(opt['data_dir'], 'r') as fp: data = np.load(fp)
+    with open(opt['data_dir'], 'rb') as fp: data = np.load(fp)
     num_frames, num_coords = data.shape
     num_kpts               = int(num_coords/2)
     print(" - Num frames: [{}]".format(num_frames))
@@ -76,8 +78,11 @@ def run_model(opt):
         data         -= np.tile(data_2d_root, num_kpts)
 
     # normalize the inputs according to the stored mean and std
-    data_mean = stat_2d['mean']
-    data_std  = stat_2d['std']
+    print(stat_2d)
+    # data_mean = stat_2d['mean']
+    data_mean = stat_2d['lsp_mean']
+    # data_std  = stat_2d['std']
+    data_std  = stat_2d['lsp_std']
 
     norm_data = (data - data_mean[np.newaxis, ...]) / data_std[np.newaxis, ...]
     norm_data[np.isnan(norm_data)] = 0
@@ -94,7 +99,8 @@ def run_model(opt):
 
     for indx, (norm_data, data) in enumerate(seq_loader):
 
-        model_inps = Variable(norm_data.cuda())
+        # model_inps = Variable(norm_data.cuda())
+        model_inps = Variable(norm_data.to(device))
         model_outs, model_scale = pretrained_model(model_inps)
 
         in_2d_poses.append(data.numpy())
@@ -142,11 +148,13 @@ if __name__ == "__main__":
 
     # NOTE: baseball.npy and running.npy contain poses with 17 keypoints
     # while random.npy contains poses with 14 keypoints
-    DEMO_DATA = './demo_data/baseball.npy' # [baseball.npy, running.npy, random.npy]
+    # DEMO_DATA = './demo_data/baseball.npy' # [baseball.npy, running.npy, random.npy]
+    DEMO_DATA = '/tmp/deadlift.npy'
     # NOTE: this model was trained for data with 17 keypoints so is compatible
     # with baseball.npy and running.npy, to run a model on random.npy you must
     # train a new model with 14 keypoints.
-    LOAD_PATH = './checkpoint/default_human36_rel'
+    # LOAD_PATH = './checkpoint/default_human36_rel'
+    LOAD_PATH = './checkpoint/default_lsp'
 
     opts_path  = LOAD_PATH + '/opt.json'
     model_path = LOAD_PATH + '/test_ckpt_last.pth.tar'

@@ -171,7 +171,8 @@ def show3Dpose(channels, ax, start_pt, end_pt, skeleton_color, lcolor, rcolor,
   ax.get_xaxis().set_ticklabels([])
   ax.get_yaxis().set_ticklabels([])
   ax.set_zticklabels([])
-  ax.set_aspect('equal')
+  # ax.set_aspect('equal')
+  ax.set_aspect('auto')
 
   # Get rid of the panes (actually, make them white)
   white = (1.0, 1.0, 1.0, 0.0)
@@ -214,4 +215,5 @@ def show2Dpose(channels, ax, start_pt, end_pt, skeleton_color, lcolor="#3498db",
     ax.set_xlabel("x")
     ax.set_ylabel("z")
 
-  ax.set_aspect('equal')
+  # ax.set_aspect('equal')
+  ax.set_aspect('auto')

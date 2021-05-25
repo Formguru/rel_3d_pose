@@ -31,7 +31,7 @@ opt.is_train = True
 opt.is_test  = True
 
 # running options
-opt.epochs           = 100
+opt.epochs           = 1000
 opt.test_batch       = 64
 opt.train_batch      = 64
 

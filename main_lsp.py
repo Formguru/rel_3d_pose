@@ -78,7 +78,8 @@ def main_lsp(opt, save_op=True, return_poses=False):
                     unnorm_op=opt.unnorm_op,
                     unnorm_init=opt.unnorm_init)
 
-    model = model.cuda()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
     model.apply(weight_init)
     print(" - total params: {:.2f}M".format(sum(p.numel() for p in model.parameters()) / 1e6))
     print("==========================================\n")

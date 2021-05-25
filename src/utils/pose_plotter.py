@@ -161,11 +161,13 @@ class PosePlotter():
         self.plot_3d(pose_3d_x, pose_3d_y, pose_3d_z, kpts_v, BLOCK, ax_3d)
 
         if BLOCK:
+            plt.savefig("/tmp/1.png")
             plt.show()
             #plt.close()
         else:
-            plt.draw()
-            plt.pause(0.01)
+            # plt.draw()
+            # plt.pause(0.01)
+            plt.savefig("/tmp/1.png")
 
 
     def _plot_skeleton(self, kpts_v, pose_x, pose_y, pose_z=None):

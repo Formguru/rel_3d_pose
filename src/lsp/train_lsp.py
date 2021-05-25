@@ -26,8 +26,10 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         # NOTE: in the case of the 3d supervised model the only the output is
         # un-standardized using the values from the data on which the model was
         # pre-trained.
-        outputs_mean = Variable(torch.from_numpy(stat_3d['mean'][np.newaxis, ...]).cuda(),requires_grad=False)
-        outputs_std  = Variable(torch.from_numpy(stat_3d['std'][np.newaxis, ...]).cuda(),requires_grad=False)
+#         outputs_mean = Variable(torch.from_numpy(stat_3d['mean'][np.newaxis, ...]).cuda(),requires_grad=False)
+        outputs_mean = Variable(torch.from_numpy(stat_3d['mean'][np.newaxis, ...]),requires_grad=False)
+#         outputs_std  = Variable(torch.from_numpy(stat_3d['std'][np.newaxis, ...]).cuda(),requires_grad=False)
+        outputs_std  = Variable(torch.from_numpy(stat_3d['std'][np.newaxis, ...]),requires_grad=False)
 
     if use_loaded_stats:
         # input mean and standard deviation loaded from the checkpoint file
@@ -38,11 +40,13 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         # load this from the misc
         # NOTE: values of -1 in the misc or joint in the misc.SKELETON MASK will be ignored
         limb_lens_3d = Variable(torch.from_numpy(np.array(misc.SKELETON_3D_LENS_AVG_PERSON).astype(
-                    stat_2d['lsp_mean'].dtype)).unsqueeze(0).cuda(),requires_grad=False)
+#                     stat_2d['lsp_mean'].dtype)).unsqueeze(0).cuda(),requires_grad=False)
+                    stat_2d['lsp_mean'].dtype)).unsqueeze(0),requires_grad=False)
 
     elif limb_type == 'avg_human36':
         limb_lens_3d = Variable(torch.from_numpy(stat_3d['avg_limb_lens'].astype(
-                                stat_2d['lsp_mean'].dtype)).cuda(),requires_grad=False)
+#                                 stat_2d['lsp_mean'].dtype)).cuda(),requires_grad=False)
+                                stat_2d['lsp_mean'].dtype)),requires_grad=False)
 
     else:
         assert False, "Unkown value [%s] for parameter [limb_type]"%limb_type
@@ -67,23 +71,28 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         num_keypoints = int(inps.shape[1] / 2) # inps are the 2d coordinates
         batch_size    = inps.shape[0]
 
-        inputs   = Variable(inps.cuda())
-        rel_inds = Variable(rel_inds.cuda())
-        rel_gt   = Variable(rel_gt.cuda())
+#         inputs   = Variable(inps.cuda())
+        inputs   = Variable(inps)
+#         rel_inds = Variable(rel_inds.cuda())
+        rel_inds = Variable(rel_inds)
+#         rel_gt   = Variable(rel_gt.cuda())
+        rel_gt   = Variable(rel_gt)
 
         ########################################################################
         # normalize if specified by the flags
         if standardize_input_data:
             if not use_loaded_stats:
                 # use the data that is already normalized
-                model_inputs  = Variable(norm_inps.cuda())
+#                 model_inputs  = Variable(norm_inps.cuda())
+                model_inputs  = Variable(norm_inps)
 
             else:
                 # normalize the data according to the stat_2d loaded from ckpt
                 norm_data = (inps - loaded_inputs_mean) / loaded_inputs_std
                 norm_data[np.isnan(norm_data)] = 0
 
-                model_inputs  = Variable(norm_data.cuda())
+#                 model_inputs  = Variable(norm_data.cuda())
+                model_inputs  = Variable(norm_data)
 
         else:
             model_inputs  = inputs
@@ -92,9 +101,10 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         # pass through the network
         optimizer.zero_grad()
         model_outputs, model_scale = model(model_inputs)
-        if np.isnan(model_outputs.mean().data[0]):
-            print('nans in prediction')
-            import ipdb;ipdb.set_trace()
+        # print(model_outputs)
+        # if np.isnan(model_outputs.mean().data[0]):
+        #     print('nans in prediction')
+        #     import ipdb;ipdb.set_trace()
 
         ########################################################################
         # un-standardize data based on flags
@@ -116,8 +126,10 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         # RELATIVE LOSS
         rel_loss = loss_weights['relative'] * \
                    rel_losses.relative_loss(outputs, rel_inds, rel_gt, distance_multiplier)
-        losses_rel.update(rel_loss.data[0], batch_size)
-        if np.isnan(rel_loss.mean().data[0]):
+        # losses_rel.update(rel_loss.data[0], batch_size)
+        losses_rel.update(rel_loss.data, batch_size)
+        # if np.isnan(rel_loss.mean().data[0]):
+        if np.isnan(rel_loss.mean().data):
             print('nans in rel loss')
             import ipdb;ipdb.set_trace()
 
@@ -129,8 +141,8 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         focal_length_over_dist = model_scale
         rep_loss = loss_weights['reproj'] * \
                    rel_losses.reproj_loss_scaled_orthographic(outputs, inputs, focal_length_over_dist)
-        losses_rep.update(rep_loss.data[0], batch_size)
-        if np.isnan(rep_loss.mean().data[0]):
+        losses_rep.update(rep_loss.data, batch_size)
+        if np.isnan(rep_loss.mean().data):
             print('nans in rep loss')
             import ipdb;ipdb.set_trace()
 
@@ -141,8 +153,8 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
 
         cam_loss = rel_losses.camera_coord_3d_loss(misc, model_outputs, outputs,
                                                    limb_lens_3d, loss_weights=loss_weights)
-        losses_cam.update(cam_loss.data[0], batch_size)
-        if np.isnan(cam_loss.mean().data[0]):
+        losses_cam.update(cam_loss.data, batch_size)
+        if np.isnan(cam_loss.mean().data):
             print('nans in cam loss')
             import ipdb;ipdb.set_trace()
 
@@ -151,7 +163,7 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         rel_loss_total = rel_loss + rep_loss + cam_loss
         rel_loss_total.backward()
 
-        losses_tot.update(rel_loss_total.mean().data[0])
+        losses_tot.update(rel_loss_total.mean().data)
 
         ########################################################################
         # clip gradients and take a step with the optimizer
