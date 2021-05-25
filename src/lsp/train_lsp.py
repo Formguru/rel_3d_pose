@@ -82,7 +82,7 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
             else:
                 # normalize the data according to the stat_2d loaded from ckpt
                 norm_data = (inps - loaded_inputs_mean) / loaded_inputs_std
-                norm_data[np.isnan(norm_data)] = 0
+                norm_data[np.isnan(norm_data.cpu())] = 0
 
                 model_inputs  = Variable(norm_data.to(device))
 
@@ -121,7 +121,7 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         # losses_rel.update(rel_loss.data[0], batch_size)
         losses_rel.update(rel_loss.data, batch_size)
         # if np.isnan(rel_loss.mean().data[0]):
-        if np.isnan(rel_loss.mean().data):
+        if np.isnan(rel_loss.mean().data.cpu()):
             print('nans in rel loss')
             import ipdb;ipdb.set_trace()
 
@@ -134,7 +134,7 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         rep_loss = loss_weights['reproj'] * \
                    rel_losses.reproj_loss_scaled_orthographic(outputs, inputs, focal_length_over_dist)
         losses_rep.update(rep_loss.data, batch_size)
-        if np.isnan(rep_loss.mean().data):
+        if np.isnan(rep_loss.mean().data.cpu()):
             print('nans in rep loss')
             import ipdb;ipdb.set_trace()
 
@@ -146,7 +146,7 @@ def train_lsp(train_loader, misc, stat_2d, stat_3d, limb_type,
         cam_loss = rel_losses.camera_coord_3d_loss(misc, model_outputs, outputs,
                                                    limb_lens_3d, loss_weights=loss_weights)
         losses_cam.update(cam_loss.data, batch_size)
-        if np.isnan(cam_loss.mean().data):
+        if np.isnan(cam_loss.mean().data.cpu()):
             print('nans in cam loss')
             import ipdb;ipdb.set_trace()
 
